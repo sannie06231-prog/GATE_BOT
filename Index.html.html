@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GATE.IO BTC_USDT PERP · 50-AI V5.3 PRO TERMINAL</title>
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-main: #090c10;
+      --bg-card: #11161f;
+      --bg-panel: #161c27;
+      --bg-hover: #1d2533;
+      --border: #232b3a;
+      --text-main: #e2e8f0;
+      --text-muted: #7c8798;
+      --green: #00b894;
+      --green-bright: #00e676;
+      --green-bg: rgba(0, 184, 148, 0.14);
+      --red: #ff4757;
+      --red-bright: #ff5252;
+      --red-bg: rgba(255, 71, 87, 0.14);
+      --blue: #2962ff;
+      --yellow: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    body { background: var(--bg-main); color: var(--text-main); padding: 14px; font-size: 13px; overflow-x: hidden; }
+
+    /* UID 로그인 오버레이 */
+    #uid-auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #0b0d13;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .uid-box {
+      width: 100%; max-width: 560px;
+      background: #12151e; border: 1px solid #242936; border-radius: 10px;
+      padding: 36px 32px; text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+    }
+    .uid-title { font-size: 20px; font-weight: 800; color: #f59e0b; letter-spacing: -0.3px; margin-bottom: 10px; }
+    .uid-subtitle { font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 20px; }
+    .uid-notice {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 6px; padding: 14px 16px;
+      font-size: 12.5px; line-height: 1.6; color: #cbd5e1;
+      text-align: left; margin-bottom: 20px;
+    }
+    .uid-input {
+      width: 100%; height: 48px;
+      background: #0d1017; border: 1px solid #2d3446; border-radius: 6px;
+      padding: 0 16px; font-size: 15px; font-weight: 600; color: #fff;
+      margin-bottom: 14px; outline: none; transition: border-color 0.15s;
+    }
+    .uid-input:focus { border-color: #22c55e; }
+    .uid-input::placeholder { color: #64748b; }
+    .uid-submit-btn {
+      width: 100%; height: 48px;
+      background: #22c55e; border: none; border-radius: 6px;
+      color: #051b0d; font-size: 15px; font-weight: 800; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: filter 0.15s;
+    }
+    .uid-submit-btn:hover { filter: brightness(1.06); }
+
+    /* 상단 헤더 */
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;
+    }
+    .title-area { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .title-area h1 { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+    .gate-tag {
+      background: linear-gradient(135deg, #00b894, #0984e3);
+      color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;
+    }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      background: rgba(255, 71, 87, 0.18); color: #ff5252; border: 1px solid rgba(255, 71, 87, 0.35);
+    }
+    .badge-live.connected {
+      background: rgba(0, 184, 148, 0.18); color: #00e676; border: 1px solid rgba(0, 184, 148, 0.35);
+    }
+    .badge-role {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; cursor: pointer;
+    }
+    .badge-role.master {
+      background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.4);
+    }
+    .badge-role.viewer {
+      background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .badge-fixed {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      background: rgba(41, 98, 255, 0.15); color: #60a5fa; border: 1px solid rgba(41, 98, 255, 0.35);
+    }
+    .badge-uid {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .control-item { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 5px 9px; border-radius: 6px; border: 1px solid var(--border); }
+    .control-item label { color: var(--text-muted); font-size: 11px; }
+    .control-item select {
+      background: #090c10; color: #fff; border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 600;
+    }
+    .locked-pill {
+      background: #090c10; color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 800;
+    }
+
+    .bot-ctrl-group { display: flex; gap: 6px; align-items: center; }
+    .btn-bot {
+      border: none; border-radius: 6px; padding: 6px 11px; font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-start { background: var(--green); color: #fff; }
+    .btn-start:hover { filter: brightness(1.1); }
+    .btn-start.disabled { background: #1a2624; color: #4a6b62; cursor: default; }
+    .btn-stop { background: var(--red); color: #fff; }
+    .btn-stop:hover { filter: brightness(1.1); }
+    .btn-stop.disabled { background: #2b1a1e; color: #754950; cursor: default; }
+    .btn-util { background: var(--bg-panel); color: #e2e8f0; border: 1px solid var(--border); }
+    .btn-util:hover { background: var(--bg-hover); border-color: #3b475e; }
+
+    /* 메인 그리드 */
+    .main-grid { display: grid; grid-template-columns: 380px 1fr; gap: 12px; margin-bottom: 12px; }
+    @media (max-width: 980px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .card-title { font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+    .signal-banner {
+      text-align: center; padding: 14px 10px; border-radius: 8px; margin-bottom: 10px;
+      border: 1px solid var(--border); background: var(--bg-panel); transition: all 0.12s;
+    }
+    .signal-banner.long { background: var(--green-bg); border-color: var(--green); color: #00e676; }
+    .signal-banner.short { background: var(--red-bg); border-color: var(--red); color: #ff5252; }
+    .signal-banner.stopped { background: rgba(245, 158, 11, 0.14); border-color: var(--yellow); color: var(--yellow); }
+    .signal-text { font-size: 18px; font-weight: 800; letter-spacing: 0.4px; }
+    .signal-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    .vote-bar-wrap { margin-bottom: 10px; }
+    .vote-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .vote-bar { height: 8px; border-radius: 5px; background: #232b3a; display: flex; overflow: hidden; }
+    .bar-long { background: var(--green); transition: width 0.15s; }
+    .bar-hold { background: #3b4454; transition: width 0.15s; }
+    .bar-short { background: var(--red); transition: width 0.15s; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+    .stat-box { background: var(--bg-panel); padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); }
+    .stat-label { font-size: 10px; color: var(--text-muted); }
+    .stat-val { font-size: 13.5px; font-weight: 700; color: #fff; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    .log-box {
+      height: 165px; overflow-y: auto; background: #090c10; border: 1px solid var(--border);
+      border-radius: 7px; padding: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.5;
+    }
+    .log-long { color: #00e676; }
+    .log-short { color: #ff5252; }
+    .log-exit { color: #60a5fa; }
+    .log-warn { color: #f59e0b; }
+
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .live-price { font-size: 21px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+    #chart-container { width: 100%; height: 515px; position: relative; }
+
+    /* 하단 거래소 스타일 탭 */
+    .tab-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+    }
+    .tab-buttons { display: flex; gap: 4px; }
+    .tab-btn {
+      background: transparent; border: none; border-bottom: 2px solid transparent;
+      color: var(--text-muted); font-size: 12.5px; font-weight: 700;
+      padding: 8px 14px; cursor: pointer; transition: all 0.15s;
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: #00e676; border-bottom-color: #00e676; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .history-table-wrap { max-height: 270px; overflow-y: auto; border: 1px solid var(--border); border-radius: 7px; }
+    table.trade-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    table.trade-table th {
+      position: sticky; top: 0; background: #161c27; color: var(--text-muted);
+      font-weight: 700; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 11px;
+    }
+    table.trade-table td {
+      padding: 8px 12px; border-bottom: 1px solid #1a212e; font-variant-numeric: tabular-nums;
+    }
+    table.trade-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .pill-long { color: #00e676; background: rgba(0, 184, 148, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+    .pill-short { color: #ff5252; background: rgba(255, 71, 87, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+    .pill-type { color: #94a3b8; background: #1e2636; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+    .ai-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+    @media (max-width: 1100px) { .ai-grid { grid-template-columns: repeat(5, 1fr); } }
+    .ai-cell {
+      background: var(--bg-panel); border: 1px solid var(--border); border-radius: 5px;
+      padding: 6px; font-size: 10px; transition: all 0.1s;
+    }
+    .ai-cell.vote-1 { background: rgba(0, 184, 148, 0.22); border-color: var(--green); }
+    .ai-cell.vote--1 { background: rgba(255, 71, 87, 0.22); border-color: var(--red); }
+    .ai-top { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 3px; }
+    .ai-tag { padding: 1px 4px; border-radius: 3px; font-size: 9px; background: #232b3a; }
+    .vote-1 .ai-tag { background: var(--green); color: #fff; }
+    .vote--1 .ai-tag { background: var(--red); color: #fff; }
+    .ai-meta { color: var(--text-muted); font-size: 9px; display: flex; justify-content: space-between; }
+
+    /* 모달 */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); z-index: 5000;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 480px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h3 { font-size: 15px; font-weight: 800; color: #fff; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+    .field-group { margin-bottom: 12px; }
+    .field-group label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; }
+    .field-group input {
+      width: 100%; background: #090c10; border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px 10px; color: #fff; font-size: 12.5px;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 초기 UID 인증 로그인 게이트 -->
+  <div id="uid-auth-overlay">
+    <div class="uid-box">
+      <div class="uid-title">◆ Gate.io UID 활성화 ◆</div>
+      <div class="uid-subtitle">Gate.io UID를 입력하면 자동으로 확인합니다.</div>
+      <div class="uid-notice">
+        프로그램 이용료는 없습니다. 전용 서버 인프라와 해외 리서치 수급에 드는 운영 비용, 타 업체 무단 사용 방지를 위해 활성화된 계정에만 정식 기능이 열립니다.
+      </div>
+      <input
+        type="text"
+        id="uid-input-field"
+        class="uid-input"
+        placeholder="Gate.io UID"
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter') verifyGateUid()"
+      />
+      <button class="uid-submit-btn" onclick="verifyGateUid()">▶ 활성화하기</button>
+    </div>
+  </div>
+
+  <!-- 2. 상단 프로 트레이딩 헤더 -->
+  <div class="header">
+    <div class="title-area">
+      <h1><span class="gate-tag">GATE.IO</span> BTCUSDT.P · 50-AI V5.3</h1>
+      <span id="ws-badge" class="badge-live"><span class="dot"></span><span id="ws-status">CONNECTING GATE.IO...</span></span>
+      <span id="role-badge" class="badge-role master" onclick="toggleNodeRole()" title="클릭하여 마스터/뷰어 모드 전환">⚡ MASTER ENGINE</span>
+      <span class="badge-uid">UID: 61622055</span>
+      <span class="badge-fixed">비중 30% · 10x · 눌림목 0.07%</span>
+    </div>
+    <div class="controls">
+      <div class="bot-ctrl-group">
+        <button id="btn-bot-start" class="btn-bot btn-start disabled" onclick="setBotRunning(true)">▶ 봇 실행</button>
+        <button id="btn-bot-stop" class="btn-bot btn-stop" onclick="setBotRunning(false)">⏸ 봇 중단</button>
+      </div>
+      <div class="control-item">
+        <label>비용 모델</label>
+        <select id="fee-mode-select">
+          <option value="maker_taker" selected>지정가 진입(0.004%) + 시장가 청산(0.01%)</option>
+          <option value="taker_taker">양방향 시장가 (0.01% / 0.01%)</option>
+          <option value="maker_maker">양방향 지정가 (0.004% / 0.004%)</option>
+        </select>
+      </div>
+      <div class="control-item"><label>비중</label><span class="locked-pill">30%</span></div>
+      <div class="control-item"><label>레버리지</label><span class="locked-pill">10x</span></div>
+      <div class="control-item"><label>눌림목</label><span class="locked-pill">0.07%</span></div>
+      <button class="btn-bot btn-util" onclick="openModal('sync-modal')" id="sb-status-btn">🟢 Supabase 연결됨</button>
+      <button class="btn-bot btn-util" onclick="openModal('api-modal')">⚙️ API · 텔레그램</button>
+    </div>
+  </div>
+
+  <!-- 3. 메인 대시보드 -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title"><span>HFT 1s PULLBACK & MOMENTUM ENGINE</span><span id="tick-rate">0 ticks/s</span></div>
+      <div id="signal-banner" class="signal-banner">
+        <div id="signal-text" class="signal-text">WAIT / WARM-UP</div>
+        <div id="signal-sub" class="signal-sub">Gate.io 1초봉 데이터 수집 중 (약 12초 소요)...</div>
+      </div>
+
+      <div class="vote-bar-wrap">
+        <div class="vote-labels">
+          <span style="color:#00e676;" id="lbl-long">LONG: 0</span>
+          <span style="color:#7c8798;" id="lbl-hold">HOLD: 50</span>
+          <span style="color:#ff5252;" id="lbl-short">SHORT: 0</span>
+        </div>
+        <div class="vote-bar">
+          <div id="bar-long" class="bar-long" style="width:0%"></div>
+          <div id="bar-hold" class="bar-hold" style="width:100%"></div>
+          <div id="bar-short" class="bar-short" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">운용 시드 잔고 (수수료 반영)</div>
+          <div class="stat-val" id="stat-balance">$13,439.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">누적 거래량 (Volume)</div>
+          <div class="stat-val" id="stat-volume">$0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">승률 / 손익비 (PF)</div>
+          <div class="stat-val" id="stat-win-pf">0.0% / 0.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">최대낙폭 (MDD)</div>
+          <div class="stat-val" id="stat-mdd">0.00%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">누적 차감 수수료</div>
+          <div class="stat-val" id="stat-fee" style="color:#f59e0b;">-$0.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">페이백 80% 환급액</div>
+          <div class="stat-val" id="stat-payback" style="color:#60a5fa;">+$0.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">포지션 / 지정가 타겟</div>
+          <div class="stat-val" id="stat-pos">NONE</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">미실현 수익률 (10x)</div>
+          <div class="stat-val" id="stat-pnl">0.00%</div>
+        </div>
+      </div>
+
+      <div class="card-title"><span>REAL-TIME EXECUTION LOG</span><span id="trade-count">0 Trades (0승 0패)</span></div>
+      <div id="log-box" class="log-box"></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-header">
+        <div>
+          <span style="font-weight:800; color:#fff;">GATE.IO:BTCUSDT.P 실시간 1초봉 (1s)</span>
+          <span style="font-size:11px; color:#60a5fa; margin-left:8px;">SL -0.09% · 본절잠금 +0.08%→+0.03% · TRAIL +0.11%</span>
+        </div>
+        <div id="live-price" class="live-price">--.--</div>
+      </div>
+      <div id="chart-container"></div>
+    </div>
+  </div>
+
+  <!-- 4. 하단 거래소 스타일 히스토리 & AI 매트릭스 탭 -->
+  <div class="card">
+    <div class="tab-bar">
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchBottomTab('tab-pos-history', this)">Position History (<span id="pos-hist-count">0</span>)</button>
+        <button class="tab-btn" onclick="switchBottomTab('tab-order-history', this)">Order History (<span id="ord-hist-count">0</span>)</button>
+        <button class="tab-btn" onclick="switchBottomTab('tab-ai-matrix', this)">50-AI Agents Matrix</button>
+      </div>
+      <span style="font-size:11px; color:var(--text-muted);" id="last-sync-label">Supabase 실시간 동기화 준비 중...</span>
+    </div>
+
+    <!-- Position History 탭 -->
+    <div id="tab-pos-history" class="tab-pane active">
+      <div class="history-table-wrap">
+        <table class="trade-table">
+          <thead>
+            <tr>
+              <th>청산 시각</th>
+              <th>계약</th>
+              <th>방향</th>
+              <th>레버리지</th>
+              <th>진입가</th>
+              <th>청산가</th>
+              <th>포지션 규모</th>
+              <th>청산 사유</th>
+              <th>실현 손익 (수수료 차감)</th>
+              <th>ROI</th>
+            </tr>
+          </thead>
+          <tbody id="position-history-body">
+            <tr><td colspan="10" style="text-align:center; color:#64748b; padding:24px;">아직 청산 완료된 포지션 내역이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Order History 탭 -->
+    <div id="tab-order-history" class="tab-pane">
+      <div class="history-table-wrap">
+        <table class="trade-table">
+          <thead>
+            <tr>
+              <th>주문 시각</th>
+              <th>계약</th>
+              <th>구분</th>
+              <th>주문 유형</th>
+              <th>체결가</th>
+              <th>주문 금액 (USDT)</th>
+              <th>수수료</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="order-history-body">
+            <tr><td colspan="8" style="text-align:center; color:#64748b; padding:24px;">아직 체결된 주문 내역이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 50-AI Matrix 탭 -->
+    <div id="tab-ai-matrix" class="tab-pane">
+      <div id="ai-grid" class="ai-grid"></div>
+    </div>
+  </div>
+
+  <!-- 5. 모달: Supabase 동기화 & 기기 역할 안내 -->
+  <div id="sync-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🟢 Supabase 실시간 동기화 제어</h3>
+        <button class="modal-close" onclick="closeModal('sync-modal')">✕</button>
+      </div>
+      <p style="font-size:12px; color:#cbd5e1; line-height:1.6; margin-bottom:12px;">
+        • <b>⚡ MASTER ENGINE (PC 1대):</b> Gate.io 실시간 데이터를 받아 매매를 돌리고 결과를 Supabase에 즉시 기록합니다.<br>
+        • <b>📱 VIEWER MODE (핸드폰/외부 PC):</b> 중복 매매를 방지하고, 마스터 PC의 로그·잔고·포지션·히스토리를 실시간으로 100% 동일하게 미러링합니다.
+      </p>
+      <div class="modal-actions">
+        <button class="btn-bot btn-util" onclick="resetSeedToInitial()">시드 $13,439 전체 초기화</button>
+        <button class="btn-bot btn-util" onclick="pullFromSupabase()">지금 강제 동기화</button>
+        <button class="btn-bot btn-start" onclick="toggleNodeRole()">모드 전환 (Master ↔ Viewer)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 모달: 거래소 API & 텔레그램 알림 세팅 -->
+  <div id="api-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ Gate.io 실전 API · 텔레그램 알림 세팅</h3>
+        <button class="modal-close" onclick="closeModal('api-modal')">✕</button>
+      </div>
+      <div class="field-group">
+        <label>Gate.io API Key (Futures 권한)</label>
+        <input type="password" id="cfg-gate-key" placeholder="Gate.io API Key 입력" />
+      </div>
+      <div class="field-group">
+        <label>Gate.io API Secret</label>
+        <input type="password" id="cfg-gate-secret" placeholder="Gate.io API Secret 입력" />
+      </div>
+      <div class="field-group">
+        <label>Telegram Bot Token</label>
+        <input type="text" id="cfg-tg-token" placeholder="예: 7123456789:AAH..." />
+      </div>
+      <div class="field-group">
+        <label>Telegram Chat ID</label>
+        <input type="text" id="cfg-tg-chat" placeholder="예: -1001234567890 또는 개인 Chat ID" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-bot btn-util" onclick="closeModal('api-modal')">닫기</button>
+        <button class="btn-bot btn-start" onclick="saveApiAndTelegramConfig()">설정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =====================================================================
+       0. Supabase 클라이언트 초기화 & UID 인증
+       ===================================================================== */
+    const SUPABASE_URL = 'https://hajmxltupvihewhprpwq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_dPXzOD9xxmOgIO3t4bti3A_vheuheyA';
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const ALLOWED_UID = '61622055';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    let nodeRole = urlParams.get('role')
+      ? urlParams.get('role').toLowerCase()
+      : (isMobileDevice ? 'viewer' : 'master');
+
+    function updateRoleBadgeUI() {
+      const badge = document.getElementById('role-badge');
+      if (nodeRole === 'master') {
+        badge.className = 'badge-role master';
+        badge.textContent = '⚡ MASTER ENGINE (PC 실행)';
+      } else {
+        badge.className = 'badge-role viewer';
+        badge.textContent = '📱 VIEWER SYNC (실시간 미러링)';
+      }
+    }
+
+    function toggleNodeRole() {
+      nodeRole = nodeRole === 'master' ? 'viewer' : 'master';
+      updateRoleBadgeUI();
+      if (nodeRole === 'viewer') {
+        clearPendingLimitLine();
+        pullFromSupabase();
+      }
+      addLog(`🔄 노드 모드 전환: ${nodeRole === 'master' ? 'MASTER ENGINE (직접 매매 연산)' : 'VIEWER SYNC (마스터 로그 실시간 수신)'}`, 'log-warn');
+    }
+
+    function verifyGateUid() {
+      const inputEl = document.getElementById('uid-input-field');
+      const val = inputEl.value.trim();
+      if (val === ALLOWED_UID) {
+        sessionStorage.setItem('gate_uid_verified', ALLOWED_UID);
+        document.getElementById('uid-auth-overlay').style.display = 'none';
+      } else {
+        inputEl.value = '';
+      }
+    }
+
+    if (sessionStorage.getItem('gate_uid_verified') === ALLOWED_UID) {
+      document.getElementById('uid-auth-overlay').style.display = 'none';
+    }
+
+    function switchBottomTab(paneId, btnEl) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(paneId).classList.add('active');
+      btnEl.classList.add('active');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    /* =====================================================================
+       1. 차트 초기화 (Gate.io BTCUSDT.P 1초봉)
+       ===================================================================== */
+    const chartContainer = document.getElementById('chart-container');
+    const chart = LightweightCharts.createChart(chartContainer, {
+      layout: { background: { color: '#11161f' }, textColor: '#e2e8f0' },
+      grid: { vertLines: { color: '#1a212e' }, horzLines: { color: '#1a212e' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#232b3a', autoScale: true },
+      timeScale: { borderColor: '#232b3a', timeVisible: true, secondsVisible: true, rightOffset: 5 }
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#00b894', downColor: '#ff4757', borderVisible: false,
+      wickUpColor: '#00b894', wickDownColor: '#ff4757'
+    });
+
+    window.addEventListener('resize', () => {
+      chart.applyOptions({ width: chartContainer.clientWidth });
+    });
+
+    /* =====================================================================
+       2. V5.3 50개 AI 에이전트 매트릭스 (로직 원본 100% 동일)
+       ===================================================================== */
+    const modules = ['OB-IMB', 'PB-DIP', 'EMA-X', 'T-VEL', 'SPRD'];
+    const agents = Array.from({ length: 50 }, (_, i) => ({
+      id: i + 1,
+      module: modules[i % 5],
+      fastW: (i % 3) + 2,
+      slowW: (i % 7) + 6,
+      pullbackRatio: +(0.45 + ((i % 10) * 0.06)).toFixed(2),
+      weight: +(0.8 + ((i % 5) * 0.1)).toFixed(1),
+      signal: 0
+    }));
+
+    const aiGridEl = document.getElementById('ai-grid');
+    agents.forEach(ag => {
+      const div = document.createElement('div');
+      div.className = 'ai-cell';
+      div.id = `agent-card-${ag.id}`;
+      div.innerHTML = `
+        <div class="ai-top">
+          <span>#${String(ag.id).padStart(2, '0')} <span style="color:#7c8798;font-weight:400;">${ag.module}</span></span>
+          <span class="ai-tag" id="agent-tag-${ag.id}">HOLD</span>
+        </div>
+        <div class="ai-meta"><span>${ag.fastW}s/${ag.slowW}s</span><span>pb ${ag.pullbackRatio}</span></div>
+      `;
+      aiGridEl.appendChild(div);
+    });
+
+    /* =====================================================================
+       3. V5.3 고정 파라미터 (매매 로직 일절 변경 없음, 초기 시드 $13,439)
+       ===================================================================== */
+    const INITIAL_SEED = 13439.0;
+    const FIXED_MARGIN_PCT = 0.30;
+    const FIXED_LEVERAGE = 10;
+    const FIXED_PULLBACK_PCT = 0.0007;
+
+    const ENTRY_THRESHOLD = 22;
+    const FLIP_THRESHOLD = 26;
+    const COOLDOWN_MS = 2500;
+
+    const INITIAL_SL_PCT = -0.0009;
+    const BE_TRIGGER_PCT = 0.0008;
+    const BE_LOCK_PCT = 0.0003;
+    const TRAIL_TRIGGER_PCT = 0.0011;
+    const TRAIL_GAP_PCT = 0.00045;
+
+    const FEE_MAKER = 0.00004;
+    const FEE_TAKER = 0.00010;
+    const PAYBACK_RATIO = 0.80;
+
+    let isBotRunning = true;
+    let currentCandle = null;
+    let secondCloses = [];
+    let secBuyVol = 0;
+    let secSellVol = 0;
+    let recentImbalances = [];
+
+    let markers = [];
+    let entryLine = null;
+    let slLine = null;
+    let pendingLimitLine = null;
+    let lastPendingPrice = 0;
+    let lastPendingSide = 0;
+
+    let balance = INITIAL_SEED;
+    let peakBalance = INITIAL_SEED;
+    let maxDrawdownPct = 0.0;
+    let totalVolume = 0;
+    let totalFeesPaid = 0;
+    let totalPaybackSaved = 0;
+    let tradeCount = 0;
+    let winCount = 0;
+    let lossCount = 0;
+    let grossWinSum = 0;
+    let grossLossSum = 0;
+
+    let executionLogs = [];
+    let orderHistoryList = [];
+    let positionHistoryList = [];
+
+    let position = 0;
+    let entryPrice = 0;
+    let activeMargin = 0;
+    let activeNotional = 0;
+    let entryFeePaid = 0;
+    let peakPnlPct = 0;
+    let breakEvenLocked = false;
+    let activeStopPct = INITIAL_SL_PCT;
+    let lastTradeTime = 0;
+    let ticksThisSecond = 0;
+    let wsConnected = false;
+
+    /* =====================================================================
+       4. Supabase 실시간 동기화 (PC Master ↔ Mobile Viewer 동일 로그/시드)
+       ===================================================================== */
+    async function pushToSupabase() {
+      if (nodeRole !== 'master') return;
+      const payload = {
+        uid: ALLOWED_UID,
+        is_bot_running: isBotRunning,
+        balance: Number(balance),
+        peak_balance: Number(peakBalance),
+        max_drawdown_pct: Number(maxDrawdownPct),
+        total_volume: Number(totalVolume),
+        total_fees_paid: Number(totalFeesPaid),
+        total_payback_saved: Number(totalPaybackSaved),
+        trade_count: tradeCount,
+        win_count: winCount,
+        loss_count: lossCount,
+        gross_win_sum: Number(grossWinSum),
+        gross_loss_sum: Number(grossLossSum),
+        current_position: {
+          position,
+          entryPrice,
+          activeMargin,
+          activeNotional,
+          activeStopPct,
+          breakEvenLocked
+        },
+        logs: executionLogs.slice(0, 60),
+        order_history: orderHistoryList.slice(0, 100),
+        position_history: positionHistoryList.slice(0, 100),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await sbClient
+        .from('gate_v53_state')
+        .upsert(payload, { onConflict: 'uid' });
+
+      if (!error) {
+        document.getElementById('sb-status-btn').textContent = '🟢 Supabase 동기화됨';
+        document.getElementById('last-sync-label').textContent = `Supabase 실시간 동기화 (${new Date().toTimeString().split(' ')[0]})`;
+      }
+    }
+
+    function applyRemoteState(row) {
+      if (!row) return;
+      isBotRunning = row.is_bot_running !== false;
+      syncBotButtonsUI();
+
+      balance = Number(row.balance ?? INITIAL_SEED);
+      peakBalance = Number(row.peak_balance ?? balance);
+      maxDrawdownPct = Number(row.max_drawdown_pct ?? 0);
+      totalVolume = Number(row.total_volume ?? 0);
+      totalFeesPaid = Number(row.total_fees_paid ?? 0);
+      totalPaybackSaved = Number(row.total_payback_saved ?? 0);
+      tradeCount = Number(row.trade_count ?? 0);
+      winCount = Number(row.win_count ?? 0);
+      lossCount = Number(row.loss_count ?? 0);
+      grossWinSum = Number(row.gross_win_sum ?? 0);
+      grossLossSum = Number(row.gross_loss_sum ?? 0);
+
+      if (Array.isArray(row.logs)) {
+        executionLogs = row.logs;
+        renderLogBox();
+      }
+      if (Array.isArray(row.order_history)) {
+        orderHistoryList = row.order_history;
+      }
+      if (Array.isArray(row.position_history)) {
+        positionHistoryList = row.position_history;
+      }
+
+      if (nodeRole === 'viewer' && row.current_position) {
+        const cp = row.current_position;
+        position = Number(cp.position || 0);
+        entryPrice = Number(cp.entryPrice || 0);
+        activeMargin = Number(cp.activeMargin || 0);
+        activeNotional = Number(cp.activeNotional || 0);
+        const posEl = document.getElementById('stat-pos');
+        if (position === 1) {
+          posEl.textContent = `LONG 10x @ ${entryPrice.toFixed(1)}`;
+          posEl.style.color = '#00e676';
+        } else if (position === -1) {
+          posEl.textContent = `SHORT 10x @ ${entryPrice.toFixed(1)}`;
+          posEl.style.color = '#ff5252';
+        } else {
+          posEl.textContent = 'NONE (MASTER 대기중)';
+          posEl.style.color = '#94a3b8';
+          document.getElementById('stat-pnl').textContent = '0.00%';
+          document.getElementById('stat-pnl').style.color = '#fff';
+        }
+      }
+
+      updateBalanceUI();
+      renderHistoryTables();
+      document.getElementById('last-sync-label').textContent = `Supabase 실시간 수신 (${new Date().toTimeString().split(' ')[0]})`;
+    }
+
+    async function pullFromSupabase() {
+      const { data, error } = await sbClient
+        .from('gate_v53_state')
+        .select('*')
+        .eq('uid', ALLOWED_UID)
+        .single();
+
+      if (!error && data) {
+        applyRemoteState(data);
+      }
+    }
+
+    function subscribeSupabaseRealtime() {
+      sbClient
+        .channel('gate-v53-realtime-channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'gate_v53_state', filter: `uid=eq.${ALLOWED_UID}` },
+          (payload) => {
+            if (!payload.new) return;
+            if (nodeRole === 'viewer') {
+              applyRemoteState(payload.new);
+            } else {
+              if (typeof payload.new.is_bot_running === 'boolean' && payload.new.is_bot_running !== isBotRunning) {
+                isBotRunning = payload.new.is_bot_running;
+                syncBotButtonsUI();
+                addLog(isBotRunning ? '▶ 원격 명령: 봇 실행 재개' : '⏸ 원격 명령: 봇 중단', 'log-warn');
+              }
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    async function resetSeedToInitial() {
+      balance = INITIAL_SEED;
+      peakBalance = INITIAL_SEED;
+      maxDrawdownPct = 0;
+      totalVolume = 0;
+      totalFeesPaid = 0;
+      totalPaybackSaved = 0;
+      tradeCount = 0;
+      winCount = 0;
+      lossCount = 0;
+      grossWinSum = 0;
+      grossLossSum = 0;
+      executionLogs = [];
+      orderHistoryList = [];
+      positionHistoryList = [];
+      position = 0;
+      updateBalanceUI();
+      renderLogBox();
+      renderHistoryTables();
+      await pushToSupabase();
+      addLog('🔄 시드 $13,439.00 및 전체 내역 초기화 완료', 'log-warn');
+      closeModal('sync-modal');
+    }
+
+    function saveApiAndTelegramConfig() {
+      const cfg = {
+        gateKey: document.getElementById('cfg-gate-key').value.trim(),
+        gateSecret: document.getElementById('cfg-gate-secret').value.trim(),
+        tgToken: document.getElementById('cfg-tg-token').value.trim(),
+        tgChat: document.getElementById('cfg-tg-chat').value.trim()
+      };
+      localStorage.setItem('gate_v53_api_tg_cfg', JSON.stringify(cfg));
+      addLog('⚙️ Gate.io API 및 텔레그램 설정이 저장되었습니다.', 'log-long');
+      closeModal('api-modal');
+    }
+
+    /* =====================================================================
+       5. Order History & Position History 렌더링
+       ===================================================================== */
+    function formatNowTime() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function recordOrderHistory(sideText, orderType, execPrice, notional, fee) {
+      orderHistoryList.unshift({
+        time: formatNowTime(),
+        symbol: 'BTCUSDT.P',
+        side: sideText,
+        type: orderType,
+        price: execPrice,
+        notional: notional,
+        fee: fee
+      });
+      if (orderHistoryList.length > 100) orderHistoryList.pop();
+      renderHistoryTables();
+    }
+
+    function recordPositionHistory(sideText, entryP, exitP, notional, reason, netPnl, roiPct) {
+      positionHistoryList.unshift({
+        time: formatNowTime(),
+        symbol: 'BTCUSDT.P',
+        side: sideText,
+        leverage: '10x',
+        entryPrice: entryP,
+        exitPrice: exitP,
+        notional: notional,
+        reason: reason,
+        pnl: netPnl,
+        roi: roiPct
+      });
+      if (positionHistoryList.length > 100) positionHistoryList.pop();
+      renderHistoryTables();
+    }
+
+    function renderHistoryTables() {
+      document.getElementById('pos-hist-count').textContent = positionHistoryList.length;
+      document.getElementById('ord-hist-count').textContent = orderHistoryList.length;
+
+      const posBody = document.getElementById('position-history-body');
+      if (positionHistoryList.length === 0) {
+        posBody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#64748b; padding:24px;">아직 청산 완료된 포지션 내역이 없습니다.</td></tr>';
+      } else {
+        posBody.innerHTML = positionHistoryList.map(row => {
+          const isLong = row.side === 'LONG';
+          const pnlColor = row.pnl >= 0 ? '#00e676' : '#ff5252';
+          return `
+            <tr>
+              <td>${row.time}</td>
+              <td style="font-weight:700; color:#fff;">${row.symbol}</td>
+              <td><span class="${isLong ? 'pill-long' : 'pill-short'}">${row.side}</span></td>
+              <td>${row.leverage}</td>
+              <td>${Number(row.entryPrice).toFixed(2)}</td>
+              <td>${Number(row.exitPrice).toFixed(2)}</td>
+              <td>$${Math.round(row.notional).toLocaleString('en-US')}</td>
+              <td><span class="pill-type">${row.reason}</span></td>
+              <td style="font-weight:700; color:${pnlColor};">${row.pnl >= 0 ? '+' : ''}$${Number(row.pnl).toFixed(2)}</td>
+              <td style="font-weight:700; color:${pnlColor};">${row.roi >= 0 ? '+' : ''}${Number(row.roi).toFixed(2)}%</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const ordBody = document.getElementById('order-history-body');
+      if (orderHistoryList.length === 0) {
+        ordBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:24px;">아직 체결된 주문 내역이 없습니다.</td></tr>';
+      } else {
+        ordBody.innerHTML = orderHistoryList.map(row => {
+          const isBuy = row.side.includes('LONG') || row.side.includes('BUY');
+          return `
+            <tr>
+              <td>${row.time}</td>
+              <td style="font-weight:700; color:#fff;">${row.symbol}</td>
+              <td><span class="${isBuy ? 'pill-long' : 'pill-short'}">${row.side}</span></td>
+              <td><span class="pill-type">${row.type}</span></td>
+              <td>${Number(row.price).toFixed(2)}</td>
+              <td>$${Math.round(row.notional).toLocaleString('en-US')}</td>
+              <td style="color:#f59e0b;">-$${Number(row.fee).toFixed(2)}</td>
+              <td style="color:#00e676; font-weight:700;">Filled</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    /* =====================================================================
+       6. 차트 가격선 & UI 업데이트 유틸
+       ===================================================================== */
+    function clearPendingLimitLine() {
+      if (pendingLimitLine) {
+        candleSeries.removePriceLine(pendingLimitLine);
+        pendingLimitLine = null;
+        lastPendingPrice = 0;
+        lastPendingSide = 0;
+      }
+    }
+
+    function updatePendingLimitLine(side, targetPrice) {
+      if (side === 0 || !targetPrice || isNaN(targetPrice)) {
+        clearPendingLimitLine();
+        return;
+      }
+      if (!pendingLimitLine || lastPendingSide !== side || Math.abs(targetPrice - lastPendingPrice) >= 0.5) {
+        clearPendingLimitLine();
+        lastPendingSide = side;
+        lastPendingPrice = targetPrice;
+        pendingLimitLine = candleSeries.createPriceLine({
+          price: targetPrice,
+          color: side === 1 ? 'rgba(0, 230, 118, 0.85)' : 'rgba(255, 82, 82, 0.85)',
+          lineWidth: 2,
+          lineStyle: LightweightCharts.LineStyle.Dotted,
+          axisLabelVisible: true,
+          title: side === 1 ? 'LIMIT LONG (-0.07%)' : 'LIMIT SHORT (+0.07%)'
+        });
+      }
+    }
+
+    function updateStopLossLine(newStopPct, labelText, lineColor) {
+      activeStopPct = newStopPct;
+      const newStopPrice = position === 1
+        ? entryPrice * (1 + activeStopPct)
+        : entryPrice * (1 - activeStopPct);
+
+      if (slLine) candleSeries.removePriceLine(slLine);
+      slLine = candleSeries.createPriceLine({
+        price: newStopPrice,
+        color: lineColor,
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dotted,
+        axisLabelVisible: true,
+        title: labelText
+      });
+    }
+
+    function getFeeRates() {
+      const mode = document.getElementById('fee-mode-select').value;
+      if (mode === 'maker_maker') return { openRate: FEE_MAKER, closeRate: FEE_MAKER };
+      if (mode === 'taker_taker') return { openRate: FEE_TAKER, closeRate: FEE_TAKER };
+      return { openRate: FEE_MAKER, closeRate: FEE_TAKER };
+    }
+
+    function syncBotButtonsUI() {
+      const btnStart = document.getElementById('btn-bot-start');
+      const btnStop = document.getElementById('btn-bot-stop');
+      if (isBotRunning) {
+        btnStart.classList.add('disabled');
+        btnStop.classList.remove('disabled');
+      } else {
+        btnStart.classList.remove('disabled');
+        btnStop.classList.add('disabled');
+      }
+    }
+
+    async function setBotRunning(run) {
+      if (isBotRunning === run) return;
+      isBotRunning = run;
+      syncBotButtonsUI();
+      if (!isBotRunning) clearPendingLimitLine();
+      addLog(isBotRunning ? '▶ 봇 실행: Gate.io V5.3 엔진 가동' : '⏸ 봇 중단: 매매 일시정지', isBotRunning ? 'log-long' : 'log-warn');
+
+      if (nodeRole === 'master') {
+        await pushToSupabase();
+      } else {
+        await sbClient
+          .from('gate_v53_state')
+          .update({ is_bot_running: isBotRunning, updated_at: new Date().toISOString() })
+          .eq('uid', ALLOWED_UID);
+      }
+    }
+
+    function updateBalanceUI() {
+      if (balance > peakBalance) peakBalance = balance;
+      const dd = peakBalance > 0 ? ((peakBalance - balance) / peakBalance) * 100 : 0;
+      if (dd > maxDrawdownPct) maxDrawdownPct = dd;
+
+      const closedCount = winCount + lossCount;
+      const winRate = closedCount > 0 ? (winCount / closedCount) * 100 : 0;
+      const pf = grossLossSum > 0 ? (grossWinSum / grossLossSum) : (grossWinSum > 0 ? 99.99 : 0);
+
+      document.getElementById('stat-balance').textContent = `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('stat-volume').textContent = `$${Math.round(totalVolume).toLocaleString('en-US')}`;
+      document.getElementById('stat-win-pf').textContent = `${winRate.toFixed(1)}% / ${pf.toFixed(2)}`;
+      document.getElementById('stat-mdd').textContent = `-${maxDrawdownPct.toFixed(2)}%`;
+      document.getElementById('stat-fee').textContent = `-$${totalFeesPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('stat-payback').textContent = `+$${totalPaybackSaved.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('trade-count').textContent = `${tradeCount} Trades (${winCount}승 ${lossCount}패)`;
+    }
+
+    function renderLogBox() {
+      const box = document.getElementById('log-box');
+      box.innerHTML = executionLogs.map(item => `<div class="${item.cls}">${item.text}</div>`).join('');
+    }
+
+    function addLog(msg, cls) {
+      const now = new Date().toTimeString().split(' ')[0];
+      const fullText = `[${now}] ${msg}`;
+      executionLogs.unshift({ text: fullText, cls });
+      if (executionLogs.length > 60) executionLogs.pop();
+      renderLogBox();
+    }
+
+    /* =====================================================================
+       7. Gate.io 실시간 무기한 선물(BTCUSDT.P) 스트림 & 1초봉 캔들 빌더
+       ===================================================================== */
+    function onTickData(price, qty, isBuyerMaker, tradeSec) {
+      if (!price || isNaN(price)) return;
+
+      ticksThisSecond++;
+      document.getElementById('live-price').textContent = price.toLocaleString('en-US', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      });
+
+      if (!currentCandle || tradeSec > currentCandle.time) {
+        if (currentCandle) {
+          secondCloses.push(currentCandle.close);
+          recentImbalances.push(secBuyVol - secSellVol);
+          if (secondCloses.length > 60) {
+            secondCloses.shift();
+            recentImbalances.shift();
+          }
+        }
+        secBuyVol = 0;
+        secSellVol = 0;
+        currentCandle = { time: tradeSec, open: price, high: price, low: price, close: price };
+      } else {
+        currentCandle.high = Math.max(currentCandle.high, price);
+        currentCandle.low = Math.min(currentCandle.low, price);
+        currentCandle.close = price;
+      }
+
+      if (isBuyerMaker) secSellVol += qty;
+      else secBuyVol += qty;
+
+      candleSeries.update(currentCandle);
+
+      const activeCloses = [...secondCloses, price];
+      run50ActiveScalper(activeCloses, price, tradeSec);
+    }
+
+    function initGateIoRealTime() {
+      const badge = document.getElementById('ws-badge');
+      const statusText = document.getElementById('ws-status');
+      let pingTimer = null;
+
+      function connectGateWS() {
+        const ws = new WebSocket('wss://fx-ws.gateio.ws/v4/ws/usdt');
+
+        ws.onopen = () => {
+          wsConnected = true;
+          badge.classList.add('connected');
+          statusText.textContent = 'LIVE GATE.IO STREAM (1s)';
+          addLog('Gate.io BTCUSDT.P 무기한 선물 실시간 스트림 연결 완료', 'log-long');
+
+          ws.send(JSON.stringify({
+            time: Math.floor(Date.now() / 1000),
+            channel: 'futures.trades',
+            event: 'subscribe',
+            payload: ['BTC_USDT']
+          }));
+
+          if (pingTimer) clearInterval(pingTimer);
+          pingTimer = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                time: Math.floor(Date.now() / 1000),
+                channel: 'futures.ping'
+              }));
+            }
+          }, 15000);
+        };
+
+        ws.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          if (msg.channel === 'futures.trades' && msg.event === 'update' && Array.isArray(msg.result)) {
+            msg.result.forEach(t => {
+              const price = parseFloat(t.price);
+              const size = Math.abs(parseFloat(t.size));
+              const isSellerTaker = parseFloat(t.size) < 0;
+              const tradeSec = t.create_time_ms
+                ? Math.floor(t.create_time_ms / 1000)
+                : Math.floor(t.create_time || Date.now() / 1000);
+              onTickData(price, size * 0.0001, isSellerTaker, tradeSec);
+            });
+          }
+        };
+
+        ws.onclose = () => {
+          wsConnected = false;
+          if (pingTimer) clearInterval(pingTimer);
+          badge.classList.remove('connected');
+          statusText.textContent = 'RECONNECTING GATE.IO...';
+          setTimeout(connectGateWS, 1500);
+        };
+
+        ws.onerror = () => ws.close();
+      }
+
+      connectGateWS();
+
+      setInterval(async () => {
+        if (wsConnected) return;
+        try {
+          const res = await fetch('https://api.gateio.ws/api/v4/futures/usdt/tickers?contract=BTC_USDT');
+          const arr = await res.json();
+          if (Array.isArray(arr) && arr[0]) {
+            const price = parseFloat(arr[0].last);
+            if (price && !isNaN(price)) {
+              badge.classList.add('connected');
+              statusText.textContent = 'LIVE GATE.IO POLL (1s)';
+              onTickData(price, 0.01, false, Math.floor(Date.now() / 1000));
+            }
+          }
+        } catch (_) {}
+      }, 1000);
+    }
+
+    setInterval(() => {
+      document.getElementById('tick-rate').textContent = `${ticksThisSecond} ticks/s`;
+      ticksThisSecond = 0;
+    }, 1000);
+
+    /* =====================================================================
+       8. V5.3 핵심 매매 로직 (원본 코드와 수식/조건 100% 동일, 일절 수정 없음)
+       ===================================================================== */
+    function run50ActiveScalper(closes, price, currentSec) {
+      if (closes.length < 12) {
+        document.getElementById('signal-sub').textContent = `Gate.io 1초봉 워밍업 중... (${closes.length} / 12초)`;
+        return;
+      }
+
+      const swing20 = closes.slice(-20);
+      const swingHigh = Math.max(...swing20);
+      const swingLow = Math.min(...swing20);
+      const prevPrice = closes[closes.length - 2];
+
+      const targetLongLimit = swingHigh * (1 - FIXED_PULLBACK_PCT);
+      const targetShortLimit = swingLow * (1 + FIXED_PULLBACK_PCT);
+
+      const dipPct = (swingHigh - price) / swingHigh;
+      const bouncePct = (price - swingLow) / swingLow;
+
+      const currentImb = (secBuyVol - secSellVol) + recentImbalances.slice(-3).reduce((a, b) => a + b, 0);
+
+      let longVotes = 0;
+      let shortVotes = 0;
+      let holdVotes = 0;
+
+      agents.forEach(ag => {
+        const fastSlice = closes.slice(-ag.fastW);
+        const slowSlice = closes.slice(-ag.slowW);
+        const fastMA = fastSlice.reduce((a, b) => a + b, 0) / fastSlice.length;
+        const slowMA = slowSlice.reduce((a, b) => a + b, 0) / slowSlice.length;
+        const winHigh = Math.max(...slowSlice);
+        const winLow = Math.min(...slowSlice);
+        const reqDepth = FIXED_PULLBACK_PCT * ag.pullbackRatio;
+
+        let sig = 0;
+        if (ag.module === 'OB-IMB') {
+          if (currentImb > 0.02 && price >= prevPrice) sig = 1;
+          else if (currentImb < -0.02 && price <= prevPrice) sig = -1;
+        } else if (ag.module === 'PB-DIP') {
+          if ((winHigh - price) / winHigh >= reqDepth && price >= prevPrice) sig = 1;
+          else if ((price - winLow) / winLow >= reqDepth && price <= prevPrice) sig = -1;
+        } else if (ag.module === 'EMA-X') {
+          if (fastMA > slowMA && price >= fastMA) sig = 1;
+          else if (fastMA < slowMA && price <= fastMA) sig = -1;
+        } else if (ag.module === 'T-VEL') {
+          const mom = (price - fastSlice[0]) / fastSlice[0];
+          if (mom >= 0.00004 && currentImb >= 0) sig = 1;
+          else if (mom <= -0.00004 && currentImb <= 0) sig = -1;
+        } else {
+          if (price < slowMA && (winHigh - price) / winHigh >= reqDepth * 0.7 && price > prevPrice) sig = 1;
+          else if (price > slowMA && (price - winLow) / winLow >= reqDepth * 0.7 && price < prevPrice) sig = -1;
+        }
+
+        if (sig === 1) longVotes++;
+        else if (sig === -1) shortVotes++;
+        else holdVotes++;
+
+        if (ag.signal !== sig) {
+          ag.signal = sig;
+          const card = document.getElementById(`agent-card-${ag.id}`);
+          const tag = document.getElementById(`agent-tag-${ag.id}`);
+          card.className = `ai-cell vote-${sig}`;
+          tag.textContent = sig === 1 ? 'LONG' : sig === -1 ? 'SHORT' : 'HOLD';
+        }
+      });
+
+      document.getElementById('lbl-long').textContent = `LONG: ${longVotes}`;
+      document.getElementById('lbl-hold').textContent = `HOLD: ${holdVotes}`;
+      document.getElementById('lbl-short').textContent = `SHORT: ${shortVotes}`;
+      document.getElementById('bar-long').style.width = `${(longVotes / 50) * 100}%`;
+      document.getElementById('bar-hold').style.width = `${(holdVotes / 50) * 100}%`;
+      document.getElementById('bar-short').style.width = `${(shortVotes / 50) * 100}%`;
+
+      const banner = document.getElementById('signal-banner');
+      const sigText = document.getElementById('signal-text');
+      const sigSub = document.getElementById('signal-sub');
+
+      if (!isBotRunning) {
+        clearPendingLimitLine();
+        banner.className = 'signal-banner stopped';
+        sigText.textContent = 'BOT PAUSED';
+        sigSub.textContent = '봇 일시정지 상태 — [▶ 봇 실행] 클릭 시 재개됩니다.';
+        return;
+      }
+
+      if (nodeRole === 'viewer') {
+        clearPendingLimitLine();
+        banner.className = position === 1 ? 'signal-banner long' : position === -1 ? 'signal-banner short' : 'signal-banner';
+        sigText.textContent = position === 1 ? `MASTER LONG (${longVotes}/50)` : position === -1 ? `MASTER SHORT (${shortVotes}/50)` : `VIEWER SYNC (L:${longVotes} / S:${shortVotes})`;
+        sigSub.textContent = '마스터 PC의 실시간 체결 및 로그를 Supabase로 동일하게 수신 중';
+        if (position !== 0 && entryPrice > 0) {
+          const rawPct = position === 1 ? (price - entryPrice) / entryPrice : (entryPrice - price) / entryPrice;
+          const roiPct = rawPct * FIXED_LEVERAGE * 100;
+          const pnlEl = document.getElementById('stat-pnl');
+          pnlEl.textContent = `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(2)}%`;
+          pnlEl.style.color = roiPct >= 0 ? '#00e676' : '#ff5252';
+        }
+        return;
+      }
+
+      const feeRates = getFeeRates();
+      const nowMs = Date.now();
+
+      const longTrigger = dipPct >= FIXED_PULLBACK_PCT && longVotes >= ENTRY_THRESHOLD && price > prevPrice;
+      const shortTrigger = bouncePct >= FIXED_PULLBACK_PCT && shortVotes >= ENTRY_THRESHOLD && price < prevPrice;
+
+      if (position === 0) {
+        const posEl = document.getElementById('stat-pos');
+        if (longVotes >= shortVotes) {
+          updatePendingLimitLine(1, targetLongLimit);
+          posEl.textContent = `대기 LONG @ ${targetLongLimit.toFixed(1)}`;
+          posEl.style.color = '#34d399';
+        } else {
+          updatePendingLimitLine(-1, targetShortLimit);
+          posEl.textContent = `대기 SHORT @ ${targetShortLimit.toFixed(1)}`;
+          posEl.style.color = '#f87171';
+        }
+      } else {
+        clearPendingLimitLine();
+      }
+
+      if (longTrigger) {
+        banner.className = 'signal-banner long';
+        sigText.textContent = `ACTIVE LONG (${longVotes}/50)`;
+        sigSub.textContent = `눌림 -${(dipPct * 100).toFixed(3)}% 반등 포착 · 비중 30% · 10x 즉시 진입`;
+      } else if (shortTrigger) {
+        banner.className = 'signal-banner short';
+        sigText.textContent = `ACTIVE SHORT (${shortVotes}/50)`;
+        sigSub.textContent = `반등 +${(bouncePct * 100).toFixed(3)}% 꺾임 포착 · 비중 30% · 10x 즉시 진입`;
+      } else {
+        banner.className = 'signal-banner';
+        sigText.textContent = `SCANNING (L:${longVotes} / S:${shortVotes})`;
+        sigSub.textContent = `L타겟 ${targetLongLimit.toFixed(1)} (-${(dipPct * 100).toFixed(2)}%) | S타겟 ${targetShortLimit.toFixed(1)} (+${(bouncePct * 100).toFixed(2)}%)`;
+      }
+
+      if (position !== 0) {
+        const rawPct = position === 1 ? (price - entryPrice) / entryPrice : (entryPrice - price) / entryPrice;
+        const grossProfit = activeNotional * rawPct;
+        const estCloseFee = activeNotional * (1 + (position === 1 ? rawPct : -rawPct)) * feeRates.closeRate;
+        const netRoiPct = ((grossProfit - entryFeePaid - estCloseFee) / activeMargin) * 100;
+
+        peakPnlPct = Math.max(peakPnlPct, rawPct);
+
+        if (!breakEvenLocked && peakPnlPct >= BE_TRIGGER_PCT) {
+          breakEvenLocked = true;
+          updateStopLossLine(BE_LOCK_PCT, 'BE LOCK (+0.03%)', '#60a5fa');
+          document.getElementById('stat-pos').textContent = `${position === 1 ? 'LONG' : 'SHORT'} 10x [BE]`;
+        }
+
+        if (peakPnlPct >= TRAIL_TRIGGER_PCT) {
+          const dynTrail = peakPnlPct - TRAIL_GAP_PCT;
+          if (dynTrail > activeStopPct) {
+            updateStopLossLine(dynTrail, `TRAIL (+${(dynTrail * 100).toFixed(2)}%)`, '#00e676');
+            document.getElementById('stat-pos').textContent = `${position === 1 ? 'LONG' : 'SHORT'} 10x [TRAIL]`;
+          }
+        }
+
+        const pnlEl = document.getElementById('stat-pnl');
+        pnlEl.textContent = `${netRoiPct >= 0 ? '+' : ''}${netRoiPct.toFixed(2)}%`;
+        pnlEl.style.color = netRoiPct >= 0 ? '#00e676' : '#ff5252';
+
+        if (nowMs - lastTradeTime >= COOLDOWN_MS) {
+          let shouldClose = false;
+          let reason = '';
+
+          if (rawPct <= activeStopPct) {
+            shouldClose = true;
+            if (peakPnlPct >= TRAIL_TRIGGER_PCT) reason = 'TRAIL';
+            else if (breakEvenLocked) reason = 'BE-STOP';
+            else reason = 'SL';
+          } else if ((position === 1 && shortVotes >= FLIP_THRESHOLD) || (position === -1 && longVotes >= FLIP_THRESHOLD)) {
+            shouldClose = true;
+            reason = 'FLIP';
+          }
+
+          if (shouldClose) {
+            const closeNotional = activeNotional * (1 + (position === 1 ? rawPct : -rawPct));
+            const closeFee = closeNotional * feeRates.closeRate;
+            const netProfit = grossProfit - closeFee;
+            const totalTradePnL = grossProfit - entryFeePaid - closeFee;
+            const roundTripRoi = (totalTradePnL / activeMargin) * 100;
+            const sideLabel = position === 1 ? 'LONG' : 'SHORT';
+
+            balance += netProfit;
+            totalVolume += closeNotional;
+            totalFeesPaid += closeFee;
+            totalPaybackSaved += closeFee * (PAYBACK_RATIO / (1 - PAYBACK_RATIO));
+            tradeCount++;
+
+            if (totalTradePnL >= 0) {
+              winCount++;
+              grossWinSum += totalTradePnL;
+            } else {
+              lossCount++;
+              grossLossSum += Math.abs(totalTradePnL);
+            }
+
+            recordOrderHistory(`CLOSE ${sideLabel}`, `Market (${reason})`, price, closeNotional, closeFee);
+            recordPositionHistory(sideLabel, entryPrice, price, activeNotional, reason, totalTradePnL, roundTripRoi);
+
+            updateBalanceUI();
+            document.getElementById('stat-pos').textContent = 'NONE';
+            pnlEl.textContent = '0.00%';
+            pnlEl.style.color = '#fff';
+
+            markers.push({
+              time: currentSec,
+              position: position === 1 ? 'aboveBar' : 'belowBar',
+              color: totalTradePnL >= 0 ? '#00e676' : '#f59e0b',
+              shape: 'circle',
+              text: `${reason} ${roundTripRoi >= 0 ? '+' : ''}${roundTripRoi.toFixed(1)}%`
+            });
+            candleSeries.setMarkers(markers.slice(-50));
+
+            if (entryLine) { candleSeries.removePriceLine(entryLine); entryLine = null; }
+            if (slLine) { candleSeries.removePriceLine(slLine); slLine = null; }
+
+            addLog(
+              `[청산-${reason}] @ ${price.toFixed(2)} | 순손익: ${totalTradePnL >= 0 ? '+' : ''}${totalTradePnL.toFixed(2)}$ (${roundTripRoi.toFixed(2)}%) | 수수료: -$${(entryFeePaid + closeFee).toFixed(2)}`,
+              'log-exit'
+            );
+            position = 0;
+            lastTradeTime = nowMs;
+
+            pushToSupabase();
+          }
+        }
+      } else if (nowMs - lastTradeTime >= COOLDOWN_MS) {
+        if (longTrigger || shortTrigger) {
+          clearPendingLimitLine();
+          position = longTrigger ? 1 : -1;
+          const sideLabel = position === 1 ? 'LONG' : 'SHORT';
+          entryPrice = price;
+          activeMargin = balance * FIXED_MARGIN_PCT;
+          activeNotional = activeMargin * FIXED_LEVERAGE;
+
+          entryFeePaid = activeNotional * feeRates.openRate;
+          balance -= entryFeePaid;
+          totalVolume += activeNotional;
+          totalFeesPaid += entryFeePaid;
+          totalPaybackSaved += entryFeePaid * (PAYBACK_RATIO / (1 - PAYBACK_RATIO));
+
+          peakPnlPct = 0;
+          breakEvenLocked = false;
+          activeStopPct = INITIAL_SL_PCT;
+          lastTradeTime = nowMs;
+          tradeCount++;
+
+          recordOrderHistory(`OPEN ${sideLabel}`, 'Limit (0.07%)', entryPrice, activeNotional, entryFeePaid);
+
+          updateBalanceUI();
+          document.getElementById('stat-pos').textContent = `${sideLabel} 10x`;
+          document.getElementById('stat-pos').style.color = position === 1 ? '#00e676' : '#ff5252';
+
+          markers.push({
+            time: currentSec,
+            position: position === 1 ? 'belowBar' : 'aboveBar',
+            color: position === 1 ? '#00b894' : '#ff4757',
+            shape: position === 1 ? 'arrowUp' : 'arrowDown',
+            text: `${sideLabel} 10x`
+          });
+          candleSeries.setMarkers(markers.slice(-50));
+
+          entryLine = candleSeries.createPriceLine({
+            price: entryPrice,
+            color: position === 1 ? '#00b894' : '#ff4757',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: `${sideLabel} 10x (30%)`
+          });
+
+          updateStopLossLine(INITIAL_SL_PCT, 'SL (-0.09%)', '#f59e0b');
+
+          addLog(
+            `[진입-${sideLabel}] @ ${price.toFixed(2)} | 비중30%·10x | 합의:${position === 1 ? longVotes : shortVotes}/50 | 진입비:-$${entryFeePaid.toFixed(2)}`,
+            position === 1 ? 'log-long' : 'log-short'
+          );
+
+          pushToSupabase();
+        }
+      }
+    }
+
+    (async function bootTerminal() {
+      updateRoleBadgeUI();
+      await pullFromSupabase();
+      subscribeSupabaseRealtime();
+      initGateIoRealTime();
+    })();
+  </script>
+</body>
+</html>
